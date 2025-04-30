@@ -15,13 +15,12 @@ import (
 
 func main() {
 	lis, err := net.Listen("tcp", ":50051")
-
 	if err != nil {
 		log.Fatalf("Failed to list: %v", err)
 	}
 
 	srv := grpc.NewServer()
-	newsv1.RegisterNewsserviceServer(srv, ingrpc.NewServer())
+	newsv1.RegisterNewsServiceServer(srv, ingrpc.NewServer())
 	healthSrv := health.NewServer()
 	healthv1.RegisterHealthServer(srv, healthSrv)
 
