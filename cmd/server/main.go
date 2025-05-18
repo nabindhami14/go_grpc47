@@ -11,6 +11,7 @@ import (
 	healthv1 "google.golang.org/grpc/health/grpc_health_v1"
 
 	ingrpc "github.com/nabindhami14/go_grpc47/internal/grpc"
+	"github.com/nabindhami14/go_grpc47/internal/memstore"
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 	}
 
 	srv := grpc.NewServer()
-	newsv1.RegisterNewsServiceServer(srv, ingrpc.NewServer())
+	newsv1.RegisterNewsServiceServer(srv, ingrpc.NewServer(memstore.New()))
 	healthSrv := health.NewServer()
 	healthv1.RegisterHealthServer(srv, healthSrv)
 
