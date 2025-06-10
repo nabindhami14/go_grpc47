@@ -5,12 +5,14 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/google/uuid"
 	newsv1 "github.com/nabindhami14/go_grpc47/api/news/v1"
 	"github.com/nabindhami14/go_grpc47/internal/memstore"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -28,6 +30,7 @@ func NewServer(store NewsStorer) *Server {
 type NewsStorer interface {
 	Create(news *memstore.News) *memstore.News
 	Get(id uuid.UUID) *memstore.News
+	GetAll() []*memstore.News
 }
 
 func (s *Server) CreateNews(_ context.Context, in *newsv1.CreateNewsRequest) (*newsv1.CreateNewsResponse, error) {
@@ -39,6 +42,27 @@ func (s *Server) CreateNews(_ context.Context, in *newsv1.CreateNewsRequest) (*n
 	createdNews := s.store.Create(parsedNews)
 	return toNewsResponse(createdNews), nil
 }
+
+func (s *Server) GetAllNews(in *emptypb.Empty, stream newsv1.NewsService_GetAllNewsServer) error {
+	for _, fetchedNews := range s.store.GetAll() {
+		if err := stream.Send(&newsv1.GetNewsResponse{
+			Id:        fetchedNews.ID.String(),
+			Author:    fetchedNews.Author,
+			Title:     fetchedNews.Title,
+			Summary:   fetchedNews.Summary,
+			Content:   fetchedNews.Content,
+			Source:    fetchedNews.Source.String(),
+			Tags:      fetchedNews.Tags,
+			CreatedAt: timestamppb.New(fetchedNews.CreatedAt.UTC()),
+			UpdatedAt: timestamppb.New(fetchedNews.UpdatedAt.UTC()),
+		}); err != nil {
+			return err
+		}
+		time.Sleep(time.Second * 5)
+	}
+	return nil
+}
+
 func (s *Server) GetNews(_ context.Context, in *newsv1.GetNewsRequest) (*newsv1.GetNewsResponse, error) {
 	newsUUID, err := uuid.Parse(in.Id)
 	if err != nil {
