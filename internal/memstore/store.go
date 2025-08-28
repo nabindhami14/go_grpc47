@@ -79,3 +79,16 @@ func (s *Store) GetAll() []*News {
 	}
 	return results
 }
+
+func (s *Store) Update(updatedNews *News) {
+	s.lock.RLock()
+	defer s.lock.RUnlock()
+
+	for idx, news := range s.news {
+		if updatedNews.ID == news.ID && news.DeletedAt.IsZero() {
+			s.news[idx] = updatedNews
+			return
+
+		}
+	}
+}

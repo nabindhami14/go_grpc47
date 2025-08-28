@@ -10,5 +10,10 @@ import "google/protobuf/empty.proto";
 service NewsService {
     rpc CreateNews (CreateNewsRequest) returns (CreateNewsResponse);
     rpc GetNews (GetNewsRequest) returns (GetNewsResponse);
+
+    // SERVER SIDE STREAMING
     rpc GetAllNews (google.protobuf.Empty) returns (stream GetNewsResponse);
+
+    // CLIENT SIDE STREAMING
+    rpc UpdateNews(stream CreateNewsRequest) returns (google.protobuf.Empty);
 } 

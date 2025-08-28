@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"time"
 
@@ -31,6 +32,7 @@ type NewsStorer interface {
 	Create(news *memstore.News) *memstore.News
 	Get(id uuid.UUID) *memstore.News
 	GetAll() []*memstore.News
+	Update(news *memstore.News)
 }
 
 func (s *Server) CreateNews(_ context.Context, in *newsv1.CreateNewsRequest) (*newsv1.CreateNewsResponse, error) {
@@ -85,6 +87,25 @@ func (s *Server) GetNews(_ context.Context, in *newsv1.GetNewsRequest) (*newsv1.
 		CreatedAt: timestamppb.New(fetchedNews.CreatedAt.UTC()),
 		UpdatedAt: timestamppb.New(fetchedNews.UpdatedAt.UTC()),
 	}, nil
+}
+
+func (s *Server) UpdateNews(stream newsv1.NewsService_UpdateNewsServer) error {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&emptypb.Empty{})
+		}
+		if err != nil {
+			return err
+		}
+
+		updatedNews, err := parseAndValidate(req)
+		if err != nil {
+			return status.Errorf(codes.InvalidArgument, "validation failed %v", err)
+		}
+		s.store.Update(updatedNews)
+	}
+
 }
 
 // UTILITIES

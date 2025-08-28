@@ -43,7 +43,7 @@ func main() {
 	// }
 	// log.Print(result)
 
-	for i := range 10 {
+	for i := range 2 {
 		_, err := client.CreateNews(ctx, &newsv1.CreateNewsRequest{
 			Id:      uuid.NewString(),
 			Author:  fmt.Sprintf("Nabin Dhami %d", i),
@@ -58,14 +58,14 @@ func main() {
 		}
 	}
 
-	result, err := client.GetAllNews(ctx, &emptypb.Empty{})
+	getAllRes, err := client.GetAllNews(ctx, &emptypb.Empty{})
 	if err != nil {
 		log.Fatalf("get all news: %v", err)
 	}
 
 	allNews := make([]*newsv1.GetNewsResponse, 0)
 	for {
-		res, err := result.Recv()
+		res, err := getAllRes.Recv()
 		if err == io.EOF {
 			break
 		}
@@ -77,4 +77,44 @@ func main() {
 		println("MESSAGE RECEIVED!")
 	}
 	log.Printf("all news: %v", allNews)
+
+	var clientStream grpc.ClientStreamingClient[newsv1.CreateNewsRequest, emptypb.Empty]
+	for i, n := range allNews {
+		clientStream, err = client.UpdateNews(ctx)
+		if err != nil {
+			log.Fatalf("update news sream: %v", err)
+		}
+
+		clientStream.Send(&newsv1.CreateNewsRequest{
+			Id:      n.Id,
+			Author:  n.Author + fmt.Sprintf("updated %d", i),
+			Title:   n.Title,
+			Tags:    n.Tags,
+			Summary: n.Summary,
+			Content: n.Content,
+			Source:  n.Source,
+		})
+		if err != nil {
+			log.Fatalf("update news send: %v", err)
+		}
+	}
+
+	if _, err := clientStream.CloseAndRecv(); err != nil {
+		log.Fatalf("client stream close: %v", err)
+	}
+
+	updatedNews := make([]*newsv1.GetNewsResponse, 0)
+	for {
+		res, err := getAllRes.Recv()
+		if err == io.EOF {
+			break
+		}
+
+		if err != nil {
+			log.Fatalf("get all news stream: %v", err)
+		}
+		updatedNews = append(updatedNews, res)
+		println("MESSAGE RECEIVED!")
+	}
+	log.Printf("updated news: %v", updatedNews)
 }

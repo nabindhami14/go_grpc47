@@ -23,6 +23,7 @@ const (
 	NewsService_CreateNews_FullMethodName = "/news.v1.NewsService/CreateNews"
 	NewsService_GetNews_FullMethodName    = "/news.v1.NewsService/GetNews"
 	NewsService_GetAllNews_FullMethodName = "/news.v1.NewsService/GetAllNews"
+	NewsService_UpdateNews_FullMethodName = "/news.v1.NewsService/UpdateNews"
 )
 
 // NewsServiceClient is the client API for NewsService service.
@@ -31,7 +32,10 @@ const (
 type NewsServiceClient interface {
 	CreateNews(ctx context.Context, in *CreateNewsRequest, opts ...grpc.CallOption) (*CreateNewsResponse, error)
 	GetNews(ctx context.Context, in *GetNewsRequest, opts ...grpc.CallOption) (*GetNewsResponse, error)
+	// SERVER SIDE STREAMING
 	GetAllNews(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (grpc.ServerStreamingClient[GetNewsResponse], error)
+	// CLIENT SIDE STREAMING
+	UpdateNews(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[CreateNewsRequest, emptypb.Empty], error)
 }
 
 type newsServiceClient struct {
@@ -81,13 +85,29 @@ func (c *newsServiceClient) GetAllNews(ctx context.Context, in *emptypb.Empty, o
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type NewsService_GetAllNewsClient = grpc.ServerStreamingClient[GetNewsResponse]
 
+func (c *newsServiceClient) UpdateNews(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[CreateNewsRequest, emptypb.Empty], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &NewsService_ServiceDesc.Streams[1], NewsService_UpdateNews_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[CreateNewsRequest, emptypb.Empty]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type NewsService_UpdateNewsClient = grpc.ClientStreamingClient[CreateNewsRequest, emptypb.Empty]
+
 // NewsServiceServer is the server API for NewsService service.
 // All implementations must embed UnimplementedNewsServiceServer
 // for forward compatibility.
 type NewsServiceServer interface {
 	CreateNews(context.Context, *CreateNewsRequest) (*CreateNewsResponse, error)
 	GetNews(context.Context, *GetNewsRequest) (*GetNewsResponse, error)
+	// SERVER SIDE STREAMING
 	GetAllNews(*emptypb.Empty, grpc.ServerStreamingServer[GetNewsResponse]) error
+	// CLIENT SIDE STREAMING
+	UpdateNews(grpc.ClientStreamingServer[CreateNewsRequest, emptypb.Empty]) error
 	mustEmbedUnimplementedNewsServiceServer()
 }
 
@@ -106,6 +126,9 @@ func (UnimplementedNewsServiceServer) GetNews(context.Context, *GetNewsRequest) 
 }
 func (UnimplementedNewsServiceServer) GetAllNews(*emptypb.Empty, grpc.ServerStreamingServer[GetNewsResponse]) error {
 	return status.Errorf(codes.Unimplemented, "method GetAllNews not implemented")
+}
+func (UnimplementedNewsServiceServer) UpdateNews(grpc.ClientStreamingServer[CreateNewsRequest, emptypb.Empty]) error {
+	return status.Errorf(codes.Unimplemented, "method UpdateNews not implemented")
 }
 func (UnimplementedNewsServiceServer) mustEmbedUnimplementedNewsServiceServer() {}
 func (UnimplementedNewsServiceServer) testEmbeddedByValue()                     {}
@@ -175,6 +198,13 @@ func _NewsService_GetAllNews_Handler(srv interface{}, stream grpc.ServerStream) 
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type NewsService_GetAllNewsServer = grpc.ServerStreamingServer[GetNewsResponse]
 
+func _NewsService_UpdateNews_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(NewsServiceServer).UpdateNews(&grpc.GenericServerStream[CreateNewsRequest, emptypb.Empty]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type NewsService_UpdateNewsServer = grpc.ClientStreamingServer[CreateNewsRequest, emptypb.Empty]
+
 // NewsService_ServiceDesc is the grpc.ServiceDesc for NewsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -196,6 +226,11 @@ var NewsService_ServiceDesc = grpc.ServiceDesc{
 			StreamName:    "GetAllNews",
 			Handler:       _NewsService_GetAllNews_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "UpdateNews",
+			Handler:       _NewsService_UpdateNews_Handler,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "news/v1/service.proto",
