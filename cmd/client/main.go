@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/google/uuid"
 	newsv1 "github.com/nabindhami14/go_grpc47/api/news/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -11,16 +12,38 @@ import (
 	"buf.build/go/protovalidate"
 )
 
+const serviceConfig = `{
+	"loadBalancingConfig": [{ "round_robin": {} }],
+	"methodConfig": [{
+		"name": [{
+			"method": "Get",
+			"service": "news.v1.NewsService"
+		}],
+		"retryPolicy": {
+			"backoffMultiplier": 1.5,
+			"initialBackoff": "0.1s",
+			"maxAttempts": 5,
+			"maxBackoff": "0.5s",
+			"retryableStatusCodes": ["INTERNAL","UNAVAILABLE"]
+		},
+		"timeout": "2s",
+		"waitForReady": true
+	}]
+}`
+
 func main() {
-	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()),
+	conn, err := grpc.NewClient("localhost:50051",
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithChainUnaryInterceptor(
 			func(ctx context.Context, method string, req, reply any, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 				log.Println("client side interceptors")
 				return invoker(ctx, method, req, reply, cc, opts...)
 			}),
-		grpc.WithChainStreamInterceptor(func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
-			return streamer(ctx, desc, cc, method, opts...)
-		}))
+		grpc.WithChainStreamInterceptor(
+			func(ctx context.Context, desc *grpc.StreamDesc, cc *grpc.ClientConn, method string, streamer grpc.Streamer, opts ...grpc.CallOption) (grpc.ClientStream, error) {
+				return streamer(ctx, desc, cc, method, opts...)
+			}),
+		grpc.WithDefaultServiceConfig(serviceConfig))
 
 	if err != nil {
 		log.Fatalf("new client: %v\n", err)
@@ -35,11 +58,11 @@ func main() {
 	}
 
 	msg := &newsv1.CreateNewsRequest{
-		Id:      "uuid.NewString()",
+		Id:      uuid.NewString(),
 		Author:  "Nabin Dhami",
 		Title:   "Random Title",
-		Summary: "Random Summary",
-		Content: "Random Content",
+		Summary: "Lorem ipsum dolor sit, amet consectetur adipisicing elit. Earum possimus nostrum minus quos accusamus at laboriosam ut error iste itaque excepturi, quas tempora incidunt eaque voluptatem repudiandae suscipit aliquid optio inventore molestias? Blanditiis veritatis, facilis obcaecati sequi, quibusdam non voluptate eveniet perspiciatis voluptatem nulla, quia nihil. Delectus placeat quaerat molestiae?",
+		Content: "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Voluptas libero debitis optio temporibus? Voluptatibus suscipit sit at nemo. Nisi quaerat sunt explicabo porro eveniet veritatis magnam laborum, eius nobis iste accusantium dolores reiciendis quisquam? Laborum est sequi consectetur, dolore cumque dolorum, repudiandae a molestias itaque, sint ratione animi autem odit perferendis. Nisi tempora itaque, architecto enim laboriosam et id, nihil culpa sit, debitis voluptates. Facilis eveniet hic voluptatem sunt, dolorem quod odit, natus recusandae obcaecati, dolor cumque? Dolor quos aliquam asperiores repudiandae mollitia deserunt, repellat rem recusandae, incidunt non nobis! Incidunt earum magni labore, odit eligendi iusto? Fugit, voluptate aliquid!",
 		Source:  "https://google.com",
 		Tags:    []string{"Title", "Description"},
 	}

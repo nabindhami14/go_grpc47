@@ -64,3 +64,5 @@ conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(ins
 ## [ProtoValidate](https://www.youtube.com/watch?v=BJDfB6CKgKs&ab_channel=Code%26Learn)
 
 > `go tool buf dep update`
+
+## [Health Checking, Graceful Shutdown, Service Config](https://www.youtube.com/watch?v=jATLdVAuMdg&ab_channel=Code%26Learn)
