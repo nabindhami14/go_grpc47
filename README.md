@@ -59,3 +59,5 @@ conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(ins
         return streamer(ctx, desc, cc, method, opts...)
     }))
 ```
+
+> `go tool buf dep update`

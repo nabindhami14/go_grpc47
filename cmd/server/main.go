@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net"
-	"time"
 
 	newsv1 "github.com/nabindhami14/go_grpc47/api/news/v1"
 	"google.golang.org/grpc"
@@ -14,6 +12,9 @@ import (
 
 	ingrpc "github.com/nabindhami14/go_grpc47/internal/grpc"
 	"github.com/nabindhami14/go_grpc47/internal/memstore"
+
+	"buf.build/go/protovalidate"
+	protovalidate_interceptor "github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/protovalidate"
 )
 
 func main() {
@@ -22,24 +23,14 @@ func main() {
 		log.Fatalf("Failed to list: %v", err)
 	}
 
-	srv := grpc.NewServer(grpc.ChainUnaryInterceptor(
-		func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-			start := time.Now()
+	validator, err := protovalidate.New()
+	if err != nil {
+		log.Fatalf("validator initialization :%v", err)
+	}
 
-			log.Printf("unary call made with: +%v", info)
-			reponse, err := handler(ctx, req)
-			log.Printf("time taken: %s", time.Since(start))
-			return reponse, err
-
-		},
-		func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp any, err error) {
-			log.Println("second interceptor")
-			return handler(ctx, req)
-		}),
-		grpc.StreamInterceptor(func(srv any, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
-			log.Println("server side streaming interceptor")
-			return handler(srv, ss)
-		}),
+	srv := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(protovalidate_interceptor.UnaryServerInterceptor(validator)),
+		grpc.ChainStreamInterceptor(protovalidate_interceptor.StreamServerInterceptor(validator)),
 	)
 
 	newsv1.RegisterNewsServiceServer(srv, ingrpc.NewServer(memstore.New()))

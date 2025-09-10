@@ -2,13 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
-	"github.com/google/uuid"
 	newsv1 "github.com/nabindhami14/go_grpc47/api/news/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+
+	"buf.build/go/protovalidate"
 )
 
 func main() {
@@ -29,41 +29,50 @@ func main() {
 	client := newsv1.NewNewsServiceClient(conn)
 	ctx := context.Background()
 
-	res, err := client.CreateNews(ctx, &newsv1.CreateNewsRequest{
-		Id:      uuid.NewString(),
+	validator, err := protovalidate.New()
+	if err != nil {
+		log.Fatalf("validator initialization :%v", err)
+	}
+
+	msg := &newsv1.CreateNewsRequest{
+		Id:      "uuid.NewString()",
 		Author:  "Nabin Dhami",
 		Title:   "Random Title",
 		Summary: "Random Summary",
 		Content: "Random Content",
 		Source:  "https://google.com",
 		Tags:    []string{"Title", "Description"},
-	})
+	}
+	if err := validator.Validate(msg); err != nil {
+		log.Fatalf("validation error: %v", err)
+	}
+
+	res, err := client.CreateNews(ctx, msg)
 	if err != nil {
 		log.Fatalf("create news: %v", err)
 	}
+	log.Print(res)
 
-	// log.Print(res)
+	// result, err := client.GetNews(ctx, &newsv1.GetNewsRequest{Id: res.Id})
+	// if err != nil {
+	// 	log.Fatalf("create news: %v", err)
+	// }
+	// log.Print(result)
 
-	result, err := client.GetNews(ctx, &newsv1.GetNewsRequest{Id: res.Id})
-	if err != nil {
-		log.Fatalf("create news: %v", err)
-	}
-	log.Print(result)
-
-	for i := range 2 {
-		_, err := client.CreateNews(ctx, &newsv1.CreateNewsRequest{
-			Id:      uuid.NewString(),
-			Author:  fmt.Sprintf("Nabin Dhami %d", i),
-			Title:   "Random Title",
-			Summary: "Random Summary",
-			Content: "Random Content",
-			Source:  "https://google.com",
-			Tags:    []string{"Title", "Description"},
-		})
-		if err != nil {
-			log.Fatalf("create news: %v", err)
-		}
-	}
+	// for i := range 2 {
+	// 	_, err := client.CreateNews(ctx, &newsv1.CreateNewsRequest{
+	// 		Id:      uuid.NewString(),
+	// 		Author:  fmt.Sprintf("Nabin Dhami %d", i),
+	// 		Title:   "Random Title",
+	// 		Summary: "Random Summary",
+	// 		Content: "Random Content",
+	// 		Source:  "https://google.com",
+	// 		Tags:    []string{"Title", "Description"},
+	// 	})
+	// 	if err != nil {
+	// 		log.Fatalf("create news: %v", err)
+	// 	}
+	// }
 
 	// getAllRes, err := client.GetAllNews(ctx, &emptypb.Empty{})
 	// if err != nil {
