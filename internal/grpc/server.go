@@ -33,6 +33,7 @@ type NewsStorer interface {
 	Get(id uuid.UUID) *memstore.News
 	GetAll() []*memstore.News
 	Update(news *memstore.News)
+	Delete(id uuid.UUID)
 }
 
 func (s *Server) CreateNews(_ context.Context, in *newsv1.CreateNewsRequest) (*newsv1.CreateNewsResponse, error) {
@@ -106,6 +107,26 @@ func (s *Server) UpdateNews(stream newsv1.NewsService_UpdateNewsServer) error {
 		s.store.Update(updatedNews)
 	}
 
+}
+
+func (s *Server) DeleteNews(stream newsv1.NewsService_DeleteNewsServer) error {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return nil
+		}
+
+		newsUUID, err := uuid.Parse(req.Id)
+		if err != nil {
+			return status.Error(codes.InvalidArgument, err.Error())
+		}
+
+		s.store.Delete(newsUUID)
+		stream.Send(&emptypb.Empty{})
+	}
 }
 
 // UTILITIES

@@ -81,8 +81,8 @@ func (s *Store) GetAll() []*News {
 }
 
 func (s *Store) Update(updatedNews *News) {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	for idx, news := range s.news {
 		if updatedNews.ID == news.ID && news.DeletedAt.IsZero() {
@@ -90,5 +90,18 @@ func (s *Store) Update(updatedNews *News) {
 			return
 
 		}
+	}
+}
+
+func (s *Store) Delete(id uuid.UUID) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	for idx, news := range s.news {
+		if news.ID == id {
+			s.news[idx].DeletedAt = time.Now().UTC()
+			return
+		}
+
 	}
 }

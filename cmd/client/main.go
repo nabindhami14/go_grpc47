@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -117,4 +118,36 @@ func main() {
 		println("MESSAGE RECEIVED!")
 	}
 	log.Printf("updated news: %v", updatedNews)
+
+	// BIDIRECTIONAL STREAM
+	deleteStream, err := client.DeleteNews(ctx)
+	if err != nil {
+		log.Fatalf("delete news stream: %v", err)
+	}
+
+	waitC := make(chan struct{})
+	go func() {
+		for _, news := range allNews {
+			err := deleteStream.Send(&newsv1.GetNewsRequest{Id: news.Id})
+			if err != nil {
+				log.Fatalf("deleting news: %v", err)
+			}
+		}
+		deleteStream.CloseSend()
+		close(waitC)
+	}()
+
+	for {
+		_, err := deleteStream.Recv()
+		if errors.Is(err, io.EOF) {
+			log.Printf("delete stream ended: %v", err)
+			break
+		}
+		if err != nil {
+			log.Fatalf("delete stream: %v", err)
+		}
+		log.Printf("news deleted!")
+	}
+
+	<-waitC
 }
