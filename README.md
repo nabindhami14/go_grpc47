@@ -11,15 +11,15 @@ go tool buf dep update
 > Buf to detect breaking changes
 
 ```sh
-go run cmd/server/main.go 
+go run cmd/server/main.go
 go run cmd/client/main.go
 ```
+
 ---
 
 > [**Code & Learn**](https://www.youtube.com/watch?v=KyLv9XEM0DM&t=34s&ab_channel=Code%26Learn)
 
-
-## [INTERCEPTORS](https://www.youtube.com/watch?v=TZShbZVNbLc&ab_channel=Code%26Learn) 
+## [INTERCEPTORS](https://www.youtube.com/watch?v=TZShbZVNbLc&ab_channel=Code%26Learn)
 
 ```sh
 Server Side Unary Interceptor
@@ -49,6 +49,7 @@ srv := grpc.NewServer(grpc.ChainUnaryInterceptor(
     }),
 )
 ```
+
 ```go
 conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()),
     grpc.WithChainUnaryInterceptor(
@@ -59,5 +60,7 @@ conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(ins
         return streamer(ctx, desc, cc, method, opts...)
     }))
 ```
+
+## [ProtoValidate](https://www.youtube.com/watch?v=BJDfB6CKgKs&ab_channel=Code%26Learn)
 
 > `go tool buf dep update`
